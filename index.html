@@ -110,11 +110,24 @@
           <div class="days" id="mealRow"></div>
           <p class="kcal-note">Tap a day to cycle Both, Lunch, Dinner, Off.</p>
         </div>
+        <div><label>Lunch deliver</label><input id="fLunchWindow" value="11:00–12:00" /></div>
+        <div><label>Dinner deliver</label><input id="fDinnerWindow" value="6:00–7:00" /></div>
+        <div class="full">
+          <label>Early delivery by day</label>
+          <div class="row">
+            <button class="btn-ghost" type="button" id="setStandard">Standard every day</button>
+            <button class="btn-ghost" type="button" id="setMon5">Monday dinner by 5:00</button>
+            <button class="btn-ghost" type="button" id="setThuFri445">Thu Fri dinner by 4:45</button>
+            <button class="btn-ghost" type="button" id="setThuSat445">Thu Fri Sat dinner by 4:45</button>
+          </div>
+          <div class="days" id="deliverRow"></div>
+          <p class="kcal-note">Tap a day to cycle Standard, Dinner 4:45, Dinner 5:00, Dinner 5:45, Lunch 5:00.</p>
+        </div>
         <div><label>Active / Paused</label><select id="fStatus"><option>Active</option><option>Paused</option></select></div>
         <div><label>Payment Status</label><select id="fPay"><option>Unbilled</option><option>Current</option><option>Due</option><option>Paused</option></select></div>
         <div class="full"><label>Food Restrictions</label><input id="fRestrict" /></div>
         <div class="full"><label>Allergies</label><input id="fAllergy" /></div>
-        <div><label>Meal Timing</label><input id="fTiming" placeholder="Lunch 11 AM · Dinner 7 PM" /></div>
+        <div><label>Meal Timing</label><input id="fTiming" placeholder="Lunch 11–12 · Dinner 6–7" /></div>
         <div class="full"><label>Delivery Address</label><textarea id="fAddress" placeholder="Paste a Google Maps link or the address"></textarea></div>
         <div class="full"><label>Notes</label><textarea id="fNotes"></textarea></div>
       </div>
@@ -136,7 +149,7 @@
       <button class="btn-ghost" id="copyPrev" type="button">Copy previous day</button>
       <span id="logMsg" class="flash"></span>
     </div>
-    <p class="kcal-note">Lunch and dinner follow the client card. Untick a meal only for a one-off skip.</p>
+    <p class="kcal-note">Lunch and dinner follow the client card. Untick only for a one-off skip. Delivery time comes from the card.</p>
     <div class="stats" id="stats"></div>
     <div id="logList"></div>
   </section>
@@ -145,10 +158,12 @@
 const KEY = "bfn_client_os_v1";
 const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const MEAL_CYCLE = ["Both","Lunch","Dinner","Off"];
+const DELIVER_CYCLE = ["Standard","Dinner 4:45","Dinner 5:00","Dinner 5:45","Lunch 5:00"];
 const state = load();
 let editId = null;
 let dayPick = blankDays("Non-Veg");
 let mealPick = blankMeals("Both");
+let deliverPick = blankDeliver();
 function load() { try { return JSON.parse(localStorage.getItem(KEY) || '{"clients":[],"logs":{}}'); } catch (e) { return { clients: [], logs: {} }; } }
 function persist() { localStorage.setItem(KEY, JSON.stringify(state)); }
 function uid() { return Math.random().toString(36).slice(2, 10); }
@@ -157,6 +172,7 @@ function shift(iso, n) { const d = new Date(iso+"T12:00:00"); d.setDate(d.getDat
 function activeClients() { return state.clients.filter(c => c.status !== "Paused"); }
 function blankDays(mode) { const d = {}; DAYS.forEach(k => d[k] = mode || "Non-Veg"); return d; }
 function blankMeals(mode) { const d = {}; DAYS.forEach(k => d[k] = mode || "Both"); return d; }
+function blankDeliver() { const d = {}; DAYS.forEach(k => d[k] = "Standard"); return d; }
 function dayKey(iso) { return ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][new Date(iso+"T12:00:00").getDay()]; }
 function paintDays() {
   document.getElementById("dayRow").innerHTML = DAYS.map(k => '<button type="button" class="day '+(dayPick[k]==="Veg"?"on-veg":"on-nv")+'" data-day="'+k+'"><b>'+k+'</b><span>'+(dayPick[k]==="Veg"?"Veg":"Non-Veg")+'</span></button>').join("");
@@ -172,6 +188,16 @@ function paintMeals() {
   });
 }
 function setMeals(map) { mealPick = Object.assign(blankMeals("Both"), map || {}); paintMeals(); }
+function paintDeliver() {
+  document.getElementById("deliverRow").innerHTML = DAYS.map(k => '<button type="button" class="day '+(deliverPick[k]==="Standard"?"on-veg":"on-nv")+'" data-deliver="'+k+'"><b>'+k+'</b><span>'+deliverPick[k]+'</span></button>').join("");
+  document.querySelectorAll("[data-deliver]").forEach(b => b.onclick = () => {
+    const now = deliverPick[b.dataset.deliver] || "Standard";
+    const i = DELIVER_CYCLE.indexOf(now);
+    deliverPick[b.dataset.deliver] = DELIVER_CYCLE[(i < 0 ? 0 : i + 1) % DELIVER_CYCLE.length];
+    paintDeliver();
+  });
+}
+function setDeliver(map) { deliverPick = Object.assign(blankDeliver(), map || {}); paintDeliver(); }
 function dietSummary(days) {
   const d = Object.assign(blankDays("Non-Veg"), days || {});
   const veg = DAYS.filter(k => d[k]==="Veg");
@@ -192,13 +218,18 @@ function wantsMeal(meals, iso, meal) {
   if (mode === "Dinner") return meal === "dinner";
   return true;
 }
+function deliverOn(c, iso) {
+  const hit = Object.assign(blankDeliver(), c.deliver || {})[dayKey(iso)];
+  if (hit && hit !== "Standard") return hit;
+  return "Lunch " + (c.lunchWindow || "11:00–12:00") + " · Dinner " + (c.dinnerWindow || "6:00–7:00");
+}
 function esc(s) { return String(s||"").replace(/[&<>"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[ch])); }
 const ROSTER = [
-  ["Santosh Adireddy","","800","75",{Tue:"Veg"},{Tue:"Dinner"},"Tuesday dinner only, vegetarian. 70-80 g protein per meal."],
+  ["Santosh Adireddy","","800","75",{Tue:"Veg"},{Tue:"Dinner"},"Tuesday dinner only, vegetarian. 70-80 g protein per meal.", {Tue:"Dinner 5:45"}],
   ["Pratyush Gummadi","9390897721","750","80",{},"",""],
   ["Akhil Dhontireddy","","700","55",{},"","Larger plate. Never paneer biryani."],
   ["Santosh Peddi","","650","60",{},"",""],
-  ["Abhinay Dhontireddy","","600","50",{},"","Thu Fri Sat dinner deliver by 4:45 PM."],
+  ["Abhinay Dhontireddy","","600","50",{},"","Thu Fri Sat dinner deliver by 4:45 PM.", {Thu:"Dinner 4:45",Fri:"Dinner 4:45",Sat:"Dinner 4:45"}],
   ["Venkat Reddy Kaukuntla","","350","30",{Mon:"Veg"},"","Monday vegetarian. No chia cup unless named."],
   ["Vishnu Reddy Gummadi","","500","40",{Mon:"Veg"},"","Monday vegetarian. Chia cup every dinner.","Avocado. Broccoli. Olive oil."],
   ["Sri Sudha Kotha","","350","28",{Mon:"Veg"},"","Monday vegetarian."],
@@ -219,7 +250,8 @@ function seed() {
     const meals = r[5] && typeof r[5] === "object" ? r[5] : {};
     const restrictions = typeof r[5] === "string" ? r[5] : (r[6] || "");
     const allergies = typeof r[5] === "string" ? (r[6] || "") : (r[7] || "");
-    state.clients.push({ id:uid(), name:r[0], phone:r[1], start:"2026-09-01", end:"", calories:Number(r[2]), protein:r[3], days:Object.assign(blankDays("Non-Veg"), r[4]), meals:Object.assign(blankMeals("Both"), meals), diet:dietSummary(r[4]), status:"Active", restrictions, allergies, timing:"Lunch 11 AM · Dinner 7 PM", payment:"Unbilled", address:"", notes:"" });
+    const deliver = r[8] && typeof r[8] === "object" ? r[8] : {};
+    state.clients.push({ id:uid(), name:r[0], phone:r[1], start:"2026-09-01", end:"", calories:Number(r[2]), protein:r[3], days:Object.assign(blankDays("Non-Veg"), r[4]), meals:Object.assign(blankMeals("Both"), meals), deliver:Object.assign(blankDeliver(), deliver), lunchWindow:"11:00–12:00", dinnerWindow:"6:00–7:00", diet:dietSummary(r[4]), status:"Active", restrictions, allergies, timing:"Lunch 11–12 · Dinner 6–7", payment:"Unbilled", address:"", notes:"" });
   });
   persist(); renderList();
 }
@@ -234,6 +266,9 @@ function openForm(c) {
   document.getElementById("fProtein").value = c ? (c.protein||"") : "";
   setDays(c && c.days ? c.days : blankDays("Non-Veg"));
   setMeals(c && c.meals ? c.meals : blankMeals("Both"));
+  setDeliver(c && c.deliver ? c.deliver : blankDeliver());
+  document.getElementById("fLunchWindow").value = c && c.lunchWindow ? c.lunchWindow : "11:00–12:00";
+  document.getElementById("fDinnerWindow").value = c && c.dinnerWindow ? c.dinnerWindow : "6:00–7:00";
   document.getElementById("fStatus").value = c ? c.status : "Active";
   document.getElementById("fPay").value = c ? (c.payment||"Unbilled") : "Unbilled";
   document.getElementById("fRestrict").value = c ? (c.restrictions||"") : "";
@@ -252,7 +287,7 @@ function saveClient() {
   const calories = Number(document.getElementById("fKcal").value);
   const msg = document.getElementById("formMsg");
   if (!name || !start || !calories) { msg.textContent = "Name, start date, and calories are required."; msg.style.color = "var(--nv)"; return; }
-  const rec = { id: editId || uid(), name, phone, start, end: document.getElementById("fEnd").value, calories, protein: document.getElementById("fProtein").value, days: Object.assign(blankDays("Non-Veg"), dayPick), meals: Object.assign(blankMeals("Both"), mealPick), diet: dietSummary(dayPick), status: document.getElementById("fStatus").value, payment: document.getElementById("fPay").value, restrictions: document.getElementById("fRestrict").value.trim(), allergies: document.getElementById("fAllergy").value.trim(), timing: document.getElementById("fTiming").value.trim(), address: document.getElementById("fAddress").value.trim(), notes: document.getElementById("fNotes").value.trim() };
+  const rec = { id: editId || uid(), name, phone, start, end: document.getElementById("fEnd").value, calories, protein: document.getElementById("fProtein").value, days: Object.assign(blankDays("Non-Veg"), dayPick), meals: Object.assign(blankMeals("Both"), mealPick), deliver: Object.assign(blankDeliver(), deliverPick), lunchWindow: document.getElementById("fLunchWindow").value.trim() || "11:00–12:00", dinnerWindow: document.getElementById("fDinnerWindow").value.trim() || "6:00–7:00", diet: dietSummary(dayPick), status: document.getElementById("fStatus").value, payment: document.getElementById("fPay").value, restrictions: document.getElementById("fRestrict").value.trim(), allergies: document.getElementById("fAllergy").value.trim(), timing: document.getElementById("fTiming").value.trim(), address: document.getElementById("fAddress").value.trim(), notes: document.getElementById("fNotes").value.trim() };
   if (editId) { const i = state.clients.findIndex(c => c.id === editId); if (i>=0) state.clients[i] = rec; } else state.clients.push(rec);
   persist(); renderList(); closeForm();
 }
@@ -290,7 +325,7 @@ function renderLog() {
   host.innerHTML = people.map(c => {
     const e = entryFor(date,c);
     const diet = dietOn(c.days, date);
-    return '<article class="card log"><div><div class="name">'+esc(c.name)+'</div><div class="sub"><span class="pill '+(diet==="Veg"?"veg":"nv")+'">'+diet+'</span> '+esc(mealSummary(c.meals))+'</div></div><div><div class="meals">'+mealBox(c.id,"lunch","Lunch · "+diet,e.lunch,e.lunchKcal)+mealBox(c.id,"dinner","Dinner · "+diet,e.dinner,e.dinnerKcal)+'</div></div></article>';
+    return '<article class="card log"><div><div class="name">'+esc(c.name)+'</div><div class="sub"><span class="pill '+(diet==="Veg"?"veg":"nv")+'">'+diet+'</span> '+esc(deliverOn(c, date))+'</div></div><div><div class="meals">'+mealBox(c.id,"lunch","Lunch · "+diet,e.lunch,e.lunchKcal)+mealBox(c.id,"dinner","Dinner · "+diet,e.dinner,e.dinnerKcal)+'</div></div></article>';
   }).join("");
   persist();
   host.querySelectorAll("[data-meal]").forEach(el => el.onchange = ev => { entryFor(date,{id:ev.target.dataset.meal})[ev.target.dataset.key] = ev.target.checked; persist(); document.getElementById("logMsg").textContent = "Saved for this date."; });
@@ -311,7 +346,7 @@ function downloadBackup() {
   a.download = "BFN_Clients_backup_" + today() + ".json";
   a.click();
   URL.revokeObjectURL(a.href);
-  document.getElementById("backupNote").textContent = "Backup downloaded " + today() + ". Keep that file.";
+  document.getElementById("backupNote").textContent = "Backup downloaded " + today() + ". Keep that file in Drive.";
 }
 function restoreBackup(ev) {
   const file = ev.target.files && ev.target.files[0];
@@ -347,6 +382,10 @@ document.getElementById("setMon").onclick = () => setDays({Mon:"Veg"});
 document.getElementById("setMonThu").onclick = () => setDays({Mon:"Veg",Thu:"Veg"});
 document.getElementById("setBoth").onclick = () => setMeals(blankMeals("Both"));
 document.getElementById("setTueDinner").onclick = () => setMeals({Tue:"Dinner"});
+document.getElementById("setStandard").onclick = () => setDeliver(blankDeliver());
+document.getElementById("setMon5").onclick = () => setDeliver({Mon:"Dinner 5:00"});
+document.getElementById("setThuFri445").onclick = () => setDeliver({Thu:"Dinner 4:45",Fri:"Dinner 4:45"});
+document.getElementById("setThuSat445").onclick = () => setDeliver({Thu:"Dinner 4:45",Fri:"Dinner 4:45",Sat:"Dinner 4:45"});
 document.getElementById("q").oninput = renderList;
 document.getElementById("logDate").value = today();
 document.getElementById("logDate").onchange = renderLog;
