@@ -53,7 +53,9 @@
   .stat { background:#fff; border:1px solid var(--line); border-radius:10px; padding:8px 12px; min-width:92px; }
   .stat b { display:block; font-size:18px; color:var(--navy); }
   .stat span { font-size:11px; color:var(--muted); font-weight:700; }
-  .log { display:grid; grid-template-columns:220px 1fr; gap:12px; }
+  .log { display:grid; grid-template-columns:240px 1fr; gap:12px; }
+  .log-meta { margin-top:8px; font-size:18px; font-weight:750; line-height:1.45; color:var(--navy); }
+  .log-meta div { display:block; }
   .meals { display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; }
   .meal { border:1px solid var(--line); border-radius:10px; padding:8px; background:#fff; }
   .meal.head { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:12px; font-weight:800; color:var(--navy); }
@@ -150,7 +152,7 @@
       <button class="btn-ghost" id="copyPrev" type="button">Copy previous day</button>
       <span id="logMsg" class="flash"></span>
     </div>
-    <p class="kcal-note">Delivery time comes from the client card. A typed early time replaces the regular window on that day.</p>
+    <p class="kcal-note">The log follows the client card. Change a tick only when that date is different.</p>
     <div class="stats" id="stats"></div>
     <div id="logList"></div>
   </section>
@@ -182,11 +184,7 @@ function paintDays() {
 function setDays(map) { dayPick = Object.assign(blankDays("Non-Veg"), map || {}); paintDays(); }
 function paintMeals() {
   document.getElementById("mealRow").innerHTML = DAYS.map(k => '<button type="button" class="day '+(mealPick[k]==="Off"?"on-nv":"on-veg")+'" data-mealday="'+k+'"><b>'+k+'</b><span>'+mealPick[k]+'</span></button>').join("");
-  document.querySelectorAll("[data-mealday]").forEach(b => b.onclick = () => {
-    const now = mealPick[b.dataset.mealday] || "Both";
-    mealPick[b.dataset.mealday] = MEAL_CYCLE[(MEAL_CYCLE.indexOf(now)+1) % MEAL_CYCLE.length];
-    paintMeals();
-  });
+  document.querySelectorAll("[data-mealday]").forEach(b => b.onclick = () => { const now = mealPick[b.dataset.mealday] || "Both"; mealPick[b.dataset.mealday] = MEAL_CYCLE[(MEAL_CYCLE.indexOf(now)+1) % MEAL_CYCLE.length]; paintMeals(); });
 }
 function setMeals(map) { mealPick = Object.assign(blankMeals("Both"), map || {}); paintMeals(); }
 function paintDeliver() {
@@ -199,11 +197,7 @@ function setDeliver(map) {
   DAYS.forEach(k => {
     const raw = map && map[k];
     if (!raw) return;
-    if (typeof raw === "string") {
-      const meal = raw.toLowerCase().indexOf("lunch") === 0 ? "lunch" : "dinner";
-      deliverPick[k][meal] = raw.replace(/lunch|dinner/ig, "").trim();
-      return;
-    }
+    if (typeof raw === "string") { deliverPick[k].dinner = raw.replace(/lunch|dinner/ig, "").trim(); return; }
     deliverPick[k] = { lunch: raw.lunch || "", dinner: raw.dinner || "" };
   });
   paintDeliver();
@@ -216,11 +210,6 @@ function dietSummary(days) {
   return veg.join(" ") + " veg";
 }
 function dietOn(days, iso) { return Object.assign(blankDays("Non-Veg"), days || {})[dayKey(iso)]; }
-function mealSummary(meals) {
-  const d = Object.assign(blankMeals("Both"), meals || {});
-  const odd = DAYS.filter(k => d[k] !== "Both").map(k => k + " " + d[k]);
-  return odd.length ? odd.join(" · ") : "Both meals every day";
-}
 function wantsMeal(meals, iso, meal) {
   const mode = Object.assign(blankMeals("Both"), meals || {})[dayKey(iso)];
   if (mode === "Off") return false;
@@ -228,48 +217,59 @@ function wantsMeal(meals, iso, meal) {
   if (mode === "Dinner") return meal === "dinner";
   return true;
 }
-function deliverOn(c, iso) {
+function deliverLines(c, iso) {
   const hit = Object.assign(blankDeliver(), c.deliver || {})[dayKey(iso)] || { lunch:"", dinner:"" };
-  return "Lunch " + (hit.lunch || c.lunchWindow || "11:00–12:00") + " · Dinner " + (hit.dinner || c.dinnerWindow || "6:00–7:00");
+  const lines = [];
+  if (wantsMeal(c.meals, iso, "lunch")) lines.push("Lunch " + (hit.lunch || c.lunchWindow || "11:00–12:00"));
+  if (wantsMeal(c.meals, iso, "dinner")) lines.push("Dinner " + (hit.dinner || c.dinnerWindow || "6:00–7:00"));
+  return lines;
 }
-const ROSTER = [
-  ["Santosh Adireddy","","800","75",{Tue:"Veg"},{Tue:"Dinner"},"Tuesday dinner only, vegetarian. 70-80 g protein per meal.", {Tue:{dinner:"5:45"}}],
-  ["Pratyush Gummadi","9390897721","750","80",{},"",""],
-  ["Akhil Dhontireddy","","700","55",{},"","Larger plate. Never paneer biryani."],
-  ["Santosh Peddi","","650","60",{},"",""],
-  ["Abhinay Dhontireddy","","600","50",{},"","Thu Fri Sat dinner deliver by 4:45 PM.", {Thu:{dinner:"4:45"},Fri:{dinner:"4:45"},Sat:{dinner:"4:45"}}],
-  ["Venkat Reddy Kaukuntla","","350","30",{Mon:"Veg"},"","Monday vegetarian. No chia cup unless named."],
-  ["Vishnu Reddy Gummadi","","500","40",{Mon:"Veg"},"","Monday vegetarian. Chia cup every dinner.","Avocado. Broccoli. Olive oil."],
-  ["Sri Sudha Kotha","","350","28",{Mon:"Veg"},"","Monday vegetarian."],
-  ["Madhulika Dhontireddy","","350","28",{},"","No raw cheese. No raw tomato."],
-  ["Rama S","","350","28",blankDays("Veg"),"","Vegetarian every day. No egg, onion, garlic, mushroom, cheese."],
-  ["Aakansha Poreddy","","500","40",{Mon:"Veg"},"","Monday vegetarian. No capsicum.","Capsicum"],
-  ["Dr. Ch. Bhadra Reddy","","400","32",{Mon:"Veg",Thu:"Veg"},"","Monday and Thursday vegetarian. Monday: no egg."],
-  ["Chandrapal Reddy Kolan","9963122255","400","32",{},"",""],
-  ["Phani","","400","32",{},"","Bill with Akhil unless separated."],
-  ["Sripal Chintal","","450","36",{},"",""],
-  ["Pranav Gummadi","","700","55",{},"",""]
-];
-function seed() {
-  if (state.clients.length && !confirm("Add the current roster? Existing names are skipped.")) return;
-  const have = new Set(state.clients.map(c => c.name.toLowerCase()));
-  ROSTER.forEach(r => {
-    if (have.has(r[0].toLowerCase())) return;
-    const meals = r[5] && typeof r[5] === "object" ? r[5] : {};
-    const restrictions = typeof r[5] === "string" ? r[5] : (r[6] || "");
-    const allergies = typeof r[5] === "string" ? (r[6] || "") : (r[7] || "");
-    const deliver = r[8] && typeof r[8] === "object" ? r[8] : {};
-    const deliverRow = blankDeliver();
-    DAYS.forEach(k => { if (deliver[k]) deliverRow[k] = { lunch: deliver[k].lunch || "", dinner: deliver[k].dinner || "" }; });
-    state.clients.push({ id:uid(), name:r[0], phone:r[1], start:"2026-09-01", end:"", calories:Number(r[2]), protein:r[3], days:Object.assign(blankDays("Non-Veg"), r[4]), meals:Object.assign(blankMeals("Both"), meals), deliver:deliverRow, lunchWindow:"11:00–12:00", dinnerWindow:"6:00–7:00", diet:dietSummary(r[4]), status:"Active", restrictions, allergies, timing:"Lunch 11–12 · Dinner 6–7", payment:"Unbilled", address:"", notes:"" });
-  });
-  persist(); renderList();
+function dayLog(date) { if (!state.logs[date]) state.logs[date] = {}; return state.logs[date]; }
+function entryFor(date, c) {
+  const full = state.clients.find(x => x.id === c.id) || c;
+  const log = dayLog(date);
+  if (!log[full.id]) log[full.id] = { lunch:false, lunchKcal:full.calories, dinner:false, dinnerKcal:full.calories, status:"Packed", notes:"", manual:false };
+  const e = log[full.id];
+  if (!e.manual) {
+    e.lunch = wantsMeal(full.meals, date, "lunch");
+    e.dinner = wantsMeal(full.meals, date, "dinner");
+    e.lunchKcal = full.calories;
+    e.dinnerKcal = full.calories;
+  }
+  return e;
+}
+function mealBox(id, key, label, on, kcal) { return '<div class="meal"><div class="head"><span>'+esc(label)+'</span><input type="checkbox" data-meal="'+id+'" data-key="'+key+'"'+(on?' checked':'')+' /></div><input type="number" min="0" step="10" data-kcal="'+id+'" data-key="'+key+'" value="'+kcal+'" /></div>'; }
+function renderLog() {
+  const date = document.getElementById("logDate").value || today();
+  document.getElementById("logDate").value = date;
+  const people = activeClients();
+  const host = document.getElementById("logList");
+  if (!people.length) { host.innerHTML = '<div class="card empty">No active clients.</div>'; document.getElementById("stats").innerHTML = ""; return; }
+  let l=0, d=0;
+  people.forEach(c => { const e = entryFor(date,c); if (e.lunch) l++; if (e.dinner) d++; });
+  document.getElementById("stats").innerHTML = '<div class="stat"><b>'+people.length+'</b><span>ACTIVE</span></div><div class="stat"><b>'+l+'</b><span>LUNCH</span></div><div class="stat"><b>'+d+'</b><span>DINNER</span></div>';
+  host.innerHTML = people.map(c => {
+    const e = entryFor(date,c);
+    const diet = dietOn(c.days, date);
+    const lines = '<div>'+diet+'</div>' + deliverLines(c, date).map(line => '<div>'+esc(line)+'</div>').join("");
+    return '<article class="card log"><div><div class="name">'+esc(c.name)+'</div><div class="log-meta">'+lines+'</div></div><div><div class="meals">'+mealBox(c.id,"lunch","Lunch",e.lunch,e.lunchKcal)+mealBox(c.id,"dinner","Dinner",e.dinner,e.dinnerKcal)+'</div></div></article>';
+  }).join("");
+  persist();
+  host.querySelectorAll("[data-meal]").forEach(el => el.onchange = ev => { const e = entryFor(date,{id:ev.target.dataset.meal}); e[ev.target.dataset.key] = ev.target.checked; e.manual = true; persist(); document.getElementById("logMsg").textContent = "Saved for this date."; });
+  host.querySelectorAll("[data-kcal]").forEach(el => el.oninput = ev => { const e = entryFor(date,{id:ev.target.dataset.kcal}); e[ev.target.dataset.key+"Kcal"] = Number(ev.target.value||0); e.manual = true; persist(); });
+}
+function show(which) {
+  document.getElementById("clientsView").classList.toggle("hide", which!=="clients");
+  document.getElementById("logView").classList.toggle("hide", which!=="log");
+  document.getElementById("tabClients").classList.toggle("on", which==="clients");
+  document.getElementById("tabLog").classList.toggle("on", which==="log");
+  if (which==="log") renderLog();
 }
 function openForm(c) {
   editId = c ? c.id : null;
   document.getElementById("formTitle").textContent = c ? "Edit Client" : "Client Details";
   document.getElementById("fName").value = c ? c.name : "";
-  document.getElementById("fPhone").value = c ? c.phone : "";
+  document.getElementById("fPhone").value = c ? (c.phone||"") : "";
   document.getElementById("fStart").value = c ? c.start : today();
   document.getElementById("fEnd").value = c ? (c.end||"") : "";
   document.getElementById("fKcal").value = c ? c.calories : 700;
@@ -286,18 +286,16 @@ function openForm(c) {
   document.getElementById("fTiming").value = c ? (c.timing||"") : "";
   document.getElementById("fAddress").value = c ? (c.address||"") : "";
   document.getElementById("fNotes").value = c ? (c.notes||"") : "";
-  document.getElementById("formMsg").textContent = "";
   document.getElementById("formCard").classList.remove("hide");
 }
 function closeForm() { editId = null; document.getElementById("formCard").classList.add("hide"); }
 function saveClient() {
   const name = document.getElementById("fName").value.trim();
-  const phone = document.getElementById("fPhone").value.trim();
   const start = document.getElementById("fStart").value;
   const calories = Number(document.getElementById("fKcal").value);
   const msg = document.getElementById("formMsg");
   if (!name || !start || !calories) { msg.textContent = "Name, start date, and calories are required."; msg.style.color = "var(--nv)"; return; }
-  const rec = { id: editId || uid(), name, phone, start, end: document.getElementById("fEnd").value, calories, protein: document.getElementById("fProtein").value, days: Object.assign(blankDays("Non-Veg"), dayPick), meals: Object.assign(blankMeals("Both"), mealPick), deliver: JSON.parse(JSON.stringify(deliverPick)), lunchWindow: document.getElementById("fLunchWindow").value.trim() || "11:00–12:00", dinnerWindow: document.getElementById("fDinnerWindow").value.trim() || "6:00–7:00", diet: dietSummary(dayPick), status: document.getElementById("fStatus").value, payment: document.getElementById("fPay").value, restrictions: document.getElementById("fRestrict").value.trim(), allergies: document.getElementById("fAllergy").value.trim(), timing: document.getElementById("fTiming").value.trim(), address: document.getElementById("fAddress").value.trim(), notes: document.getElementById("fNotes").value.trim() };
+  const rec = { id: editId || uid(), name, phone: document.getElementById("fPhone").value.trim(), start, end: document.getElementById("fEnd").value, calories, protein: document.getElementById("fProtein").value, days: Object.assign(blankDays("Non-Veg"), dayPick), meals: Object.assign(blankMeals("Both"), mealPick), deliver: JSON.parse(JSON.stringify(deliverPick)), lunchWindow: document.getElementById("fLunchWindow").value.trim() || "11:00–12:00", dinnerWindow: document.getElementById("fDinnerWindow").value.trim() || "6:00–7:00", diet: dietSummary(dayPick), status: document.getElementById("fStatus").value, payment: document.getElementById("fPay").value, restrictions: document.getElementById("fRestrict").value.trim(), allergies: document.getElementById("fAllergy").value.trim(), timing: document.getElementById("fTiming").value.trim(), address: document.getElementById("fAddress").value.trim(), notes: document.getElementById("fNotes").value.trim() };
   if (editId) { const i = state.clients.findIndex(c => c.id === editId); if (i>=0) state.clients[i] = rec; } else state.clients.push(rec);
   persist(); renderList(); closeForm();
 }
@@ -308,54 +306,19 @@ function removeClient(id) {
 }
 function renderList() {
   const q = document.getElementById("q").value.trim().toLowerCase();
-  const rows = state.clients.filter(c => [c.name,c.phone,c.restrictions,c.allergies,c.address,dietSummary(c.days),mealSummary(c.meals)].join(" ").toLowerCase().includes(q));
+  const rows = state.clients.filter(c => [c.name,c.phone,c.restrictions,c.allergies].join(" ").toLowerCase().includes(q));
   document.getElementById("countLabel").textContent = state.clients.length + " clients · " + activeClients().length + " active";
   const host = document.getElementById("list");
   if (!rows.length) { host.innerHTML = '<div class="empty">No clients yet. Add one, or load the current roster.</div>'; return; }
-  host.innerHTML = rows.map(c => '<div class="client"><div><div class="name">'+esc(c.name)+'</div><div class="sub">'+esc(mealSummary(c.meals))+'</div>'+(c.restrictions?'<div class="sub flag">'+esc(c.restrictions)+'</div>':'')+'</div><div><span class="pill '+(dietSummary(c.days)==="Non-veg every day"?"nv":"veg")+'">'+esc(dietSummary(c.days))+'</span></div><div><b>'+c.calories+'</b> kcal</div><div><span class="pill '+(c.status==="Active"?"on":"off")+'">'+esc(c.status)+'</span></div><div><button class="btn-ghost" data-edit="'+c.id+'" type="button">Edit</button> <button class="btn-ghost" data-del="'+c.id+'" type="button">Remove</button></div></div>').join("");
+  host.innerHTML = rows.map(c => '<div class="client"><div><div class="name">'+esc(c.name)+'</div></div><div><span class="pill '+(dietSummary(c.days)==="Non-veg every day"?"nv":"veg")+'">'+esc(dietSummary(c.days))+'</span></div><div><b>'+c.calories+'</b> kcal</div><div><span class="pill '+(c.status==="Active"?"on":"off")+'">'+esc(c.status)+'</span></div><div><button class="btn-ghost" data-edit="'+c.id+'" type="button">Edit</button> <button class="btn-ghost" data-del="'+c.id+'" type="button">Remove</button></div></div>').join("");
   host.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => openForm(state.clients.find(c => c.id === b.dataset.edit)));
   host.querySelectorAll("[data-del]").forEach(b => b.onclick = () => removeClient(b.dataset.del));
 }
-function dayLog(date) { if (!state.logs[date]) state.logs[date] = {}; return state.logs[date]; }
-function entryFor(date, c) {
-  const log = dayLog(date);
-  if (!log[c.id]) log[c.id] = { lunch:wantsMeal(c.meals, date, "lunch"), lunchKcal:c.calories, dinner:wantsMeal(c.meals, date, "dinner"), dinnerKcal:c.calories, status:"Packed", notes:"" };
-  return log[c.id];
-}
-function mealBox(id, key, label, on, kcal) { return '<div class="meal"><div class="head"><span>'+esc(label)+'</span><input type="checkbox" data-meal="'+id+'" data-key="'+key+'"'+(on?' checked':'')+' /></div><input type="number" min="0" step="10" data-kcal="'+id+'" data-key="'+key+'" value="'+kcal+'" /></div>'; }
-function renderLog() {
-  const date = document.getElementById("logDate").value || today();
-  document.getElementById("logDate").value = date;
-  const people = activeClients();
-  const host = document.getElementById("logList");
-  if (!people.length) { host.innerHTML = '<div class="card empty">No active clients.</div>'; document.getElementById("stats").innerHTML = ""; return; }
-  let l=0, d=0;
-  people.forEach(c => { const e = entryFor(date,c); if (e.lunch) l++; if (e.dinner) d++; });
-  document.getElementById("stats").innerHTML = '<div class="stat"><b>'+people.length+'</b><span>ACTIVE</span></div><div class="stat"><b>'+l+'</b><span>LUNCH</span></div><div class="stat"><b>'+d+'</b><span>DINNER</span></div>';
-  host.innerHTML = people.map(c => {
-    const e = entryFor(date,c);
-    const diet = dietOn(c.days, date);
-    return '<article class="card log"><div><div class="name">'+esc(c.name)+'</div><div class="sub"><span class="pill '+(diet==="Veg"?"veg":"nv")+'">'+diet+'</span> '+esc(deliverOn(c, date))+'</div></div><div><div class="meals">'+mealBox(c.id,"lunch","Lunch · "+diet,e.lunch,e.lunchKcal)+mealBox(c.id,"dinner","Dinner · "+diet,e.dinner,e.dinnerKcal)+'</div></div></article>';
-  }).join("");
-  persist();
-  host.querySelectorAll("[data-meal]").forEach(el => el.onchange = ev => { entryFor(date,{id:ev.target.dataset.meal})[ev.target.dataset.key] = ev.target.checked; persist(); document.getElementById("logMsg").textContent = "Saved for this date."; });
-  host.querySelectorAll("[data-kcal]").forEach(el => el.oninput = ev => { entryFor(date,{id:ev.target.dataset.kcal})[ev.target.dataset.key+"Kcal"] = Number(ev.target.value||0); persist(); });
-}
-function show(which) {
-  document.getElementById("clientsView").classList.toggle("hide", which!=="clients");
-  document.getElementById("logView").classList.toggle("hide", which!=="log");
-  document.getElementById("tabClients").classList.toggle("on", which==="clients");
-  document.getElementById("tabLog").classList.toggle("on", which==="log");
-  if (which==="log") renderLog();
-}
 function downloadBackup() {
-  const payload = { exported: new Date().toISOString(), clients: state.clients, logs: state.logs };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({ exported:new Date().toISOString(), clients:state.clients, logs:state.logs }, null, 2)], { type:"application/json" }));
   a.download = "BFN_Clients_backup_" + today() + ".json";
   a.click();
-  URL.revokeObjectURL(a.href);
   document.getElementById("backupNote").textContent = "Backup downloaded " + today() + ". Keep that file in Drive.";
 }
 function restoreBackup(ev) {
@@ -367,11 +330,7 @@ function restoreBackup(ev) {
       const data = JSON.parse(reader.result);
       if (!data || !Array.isArray(data.clients)) throw new Error("bad");
       if (!confirm("Replace the clients and daily log in this browser with this backup?")) return;
-      state.clients = data.clients;
-      state.logs = data.logs || {};
-      persist();
-      renderList();
-      document.getElementById("backupNote").textContent = "Restored " + state.clients.length + " clients from " + file.name + ".";
+      state.clients = data.clients; state.logs = data.logs || {}; persist(); renderList();
     } catch (e) { alert("That file is not a Belly Free Nation backup."); }
     ev.target.value = "";
   };
@@ -382,7 +341,6 @@ document.getElementById("tabLog").onclick = () => show("log");
 document.getElementById("addBtn").onclick = () => openForm(null);
 document.getElementById("cancelBtn").onclick = closeForm;
 document.getElementById("saveBtn").onclick = saveClient;
-document.getElementById("seedBtn").onclick = seed;
 document.getElementById("backupBtn").onclick = downloadBackup;
 document.getElementById("restoreBtn").onclick = () => document.getElementById("restoreFile").click();
 document.getElementById("restoreFile").onchange = restoreBackup;
@@ -401,7 +359,6 @@ document.getElementById("logDate").value = today();
 document.getElementById("logDate").onchange = renderLog;
 document.getElementById("prevDay").onclick = () => { document.getElementById("logDate").value = shift(document.getElementById("logDate").value,-1); renderLog(); };
 document.getElementById("nextDay").onclick = () => { document.getElementById("logDate").value = shift(document.getElementById("logDate").value,1); renderLog(); };
-document.getElementById("copyPrev").onclick = () => { const date = document.getElementById("logDate").value; const prev = shift(date,-1); if (!state.logs[prev]) { document.getElementById("logMsg").textContent = "No log on " + prev + "."; return; } state.logs[date] = JSON.parse(JSON.stringify(state.logs[prev])); persist(); renderLog(); };
 renderList();
 </script>
 </body>
