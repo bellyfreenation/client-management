@@ -7,7 +7,7 @@
 <style>
   :root { --green:#11562F; --navy:#1B3A4B; --cream:#F6F3EC; --paper:#FFFcf7; --ink:#1A2421; --muted:#5E6B66; --line:#E4DDD0; --nv:#C94C4C; --warn:#8A5A12; }
   * { box-sizing: border-box; }
-  body { margin:0; font-family:"Segoe UI",Arial,sans-serif; background:var(--cream); color:var(--ink); }
+  body { margin:0; font-family:"Segoe UI", Arial, sans-serif; background:var(--cream); color:var(--ink); }
   header.top { background:#F7F4EE; border-bottom:3px solid var(--green); padding:12px 22px 10px; }
   .brand { display:flex; gap:18px; align-items:center; justify-content:space-between; max-width:1100px; margin:0 auto; }
   .mark { color:#11562F; font-weight:700; line-height:0.9; font-size:34px; }
@@ -18,10 +18,10 @@
   .tabs { display:flex; gap:8px; margin-bottom:16px; }
   .tabs button, .btn, .btn-ghost { border:0; border-radius:8px; padding:10px 14px; font-size:14px; font-weight:700; cursor:pointer; }
   .tabs button { background:transparent; color:var(--navy); border:1px solid var(--line); }
-  .tabs button.on, .btn { background:var(--green); color:white; border-color:var(--green); }
-  .btn-ghost { background:white; color:var(--navy); border:1px solid var(--line); }
+  .tabs button.on, .btn { background:var(--green); color:#fff; border-color:var(--green); }
+  .btn-ghost { background:#fff; color:var(--navy); border:1px solid var(--line); }
   .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
-  input, select, textarea { width:100%; border:1px solid var(--line); background:white; border-radius:8px; padding:10px 12px; font-size:14px; font-family:inherit; }
+  input, select, textarea { width:100%; border:1px solid var(--line); background:#fff; border-radius:8px; padding:10px 12px; font-size:14px; font-family:inherit; color:var(--ink); }
   textarea { min-height:72px; }
   label { display:block; font-size:12px; font-weight:700; color:var(--navy); margin-bottom:4px; }
   label span.req { color:var(--nv); }
@@ -29,7 +29,7 @@
   .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .grid .full { grid-column:1 / -1; }
   .search { flex:1; min-width:180px; }
-  .client { display:grid; grid-template-columns:1.4fr 0.8fr 0.6fr 0.7fr auto; gap:8px; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); }
+  .client { display:grid; grid-template-columns:1.4fr .8fr .6fr .7fr auto; gap:8px; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); }
   .name { font-weight:800; color:var(--navy); }
   .sub { color:var(--muted); font-size:12px; margin-top:2px; }
   .pill { display:inline-block; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:800; }
@@ -39,21 +39,21 @@
   .hide { display:none !important; }
   .savebar { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:8px; }
   .flash { color:var(--green); font-size:13px; font-weight:700; }
-  .kcal-note { font-size:12px; color:var(--muted); margin:6px 0 0; }
+  .kcal-note { font-size:12px; color:var(--muted); margin:6px 0 10px; }
   .flag { color:var(--nv); font-size:12px; font-weight:700; }
   .days { display:flex; gap:6px; flex-wrap:wrap; }
-  .day { border:1px solid var(--line); background:white; border-radius:8px; min-width:64px; padding:6px 8px; text-align:center; cursor:pointer; font-family:inherit; }
+  .day { border:1px solid var(--line); background:#fff; border-radius:8px; min-width:64px; padding:6px 8px; text-align:center; cursor:pointer; font-family:inherit; }
   .day b { display:block; font-size:11px; color:var(--navy); }
   .day.on-veg { background:#E7F3EA; border-color:var(--green); color:var(--green); }
   .day.on-nv { background:#FBEAEA; border-color:var(--nv); color:var(--nv); }
   .day span { font-size:11px; font-weight:800; }
   .stats { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
-  .stat { background:white; border:1px solid var(--line); border-radius:10px; padding:8px 12px; min-width:92px; }
+  .stat { background:#fff; border:1px solid var(--line); border-radius:10px; padding:8px 12px; min-width:92px; }
   .stat b { display:block; font-size:18px; color:var(--navy); }
   .stat span { font-size:11px; color:var(--muted); font-weight:700; }
   .log { display:grid; grid-template-columns:220px 1fr; gap:12px; }
-  .meals { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-  .meal { border:1px solid var(--line); border-radius:10px; padding:8px; background:white; }
+  .meals { display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; }
+  .meal { border:1px solid var(--line); border-radius:10px; padding:8px; background:#fff; }
   .meal.head { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:12px; font-weight:800; color:var(--navy); }
   .empty { padding:28px 8px; text-align:center; color:var(--muted); }
   @media (max-width:800px) { .grid, .log, .client, .meals { grid-template-columns:1fr; } }
@@ -76,12 +76,16 @@
       <button class="btn" id="addBtn" type="button">+ Add Client</button>
       <input class="search" id="q" placeholder="Search name, WhatsApp, restriction" />
       <button class="btn-ghost" id="seedBtn" type="button">Load current roster</button>
+      <button class="btn-ghost" id="backupBtn" type="button">Download backup</button>
+      <button class="btn-ghost" id="restoreBtn" type="button">Restore backup</button>
+      <input id="restoreFile" type="file" accept="application/json,.json" class="hide" />
     </div>
+    <p class="kcal-note" id="backupNote">Backup is a file you keep. GitHub does not store the client list.</p>
     <div id="formCard" class="card hide">
       <h2 id="formTitle" style="margin:0 0 12px; color:var(--navy); font-size:18px;">Client Details</h2>
       <div class="grid">
         <div><label>Client Name <span class="req">*</span></label><input id="fName" /></div>
-        <div><label>WhatsApp <span class="req">*</span></label><input id="fPhone" /></div>
+        <div><label>WhatsApp</label><input id="fPhone" placeholder="Optional" /></div>
         <div><label>Start Date <span class="req">*</span></label><input id="fStart" type="date" /></div>
         <div><label>End Date</label><input id="fEnd" type="date" /></div>
         <div><label>Calories <span class="req">*</span></label><input id="fKcal" type="number" min="0" step="10" value="700" /></div>
@@ -95,14 +99,14 @@
             <button class="btn-ghost" type="button" id="setMonThu">Mon + Thu veg</button>
           </div>
           <div class="days" id="dayRow"></div>
-          <p class="kcal-note">Tap a day to switch Veg or Non-Veg. Daily Log uses the day of the date you open.</p>
+          <p class="kcal-note">Tap a day to switch. Daily Log reads this row for the date you open.</p>
         </div>
         <div><label>Active / Paused</label><select id="fStatus"><option>Active</option><option>Paused</option></select></div>
         <div><label>Payment Status</label><select id="fPay"><option>Unbilled</option><option>Current</option><option>Due</option><option>Paused</option></select></div>
         <div class="full"><label>Food Restrictions</label><input id="fRestrict" /></div>
         <div class="full"><label>Allergies</label><input id="fAllergy" /></div>
         <div><label>Meal Timing</label><input id="fTiming" placeholder="Lunch 11 AM · Dinner 7 PM" /></div>
-        <div class="full"><label>Delivery Address</label><textarea id="fAddress"></textarea></div>
+        <div class="full"><label>Delivery Address</label><textarea id="fAddress" placeholder="Paste a Google Maps link or the address"></textarea></div>
         <div class="full"><label>Notes</label><textarea id="fNotes"></textarea></div>
       </div>
       <div class="savebar">
@@ -123,6 +127,7 @@
       <button class="btn-ghost" id="copyPrev" type="button">Copy previous day</button>
       <span id="logMsg" class="flash"></span>
     </div>
+    <p class="kcal-note">Lunch and dinner start checked. Untick a meal only if that client is out that day. Veg or non-veg comes from the client card.</p>
     <div class="stats" id="stats"></div>
     <div id="logList"></div>
   </section>
@@ -211,7 +216,7 @@ function saveClient() {
   const start = document.getElementById("fStart").value;
   const calories = Number(document.getElementById("fKcal").value);
   const msg = document.getElementById("formMsg");
-  if (!name || !phone || !start || !calories) { msg.textContent = "Name, WhatsApp, start date, and calories are required."; msg.style.color = "var(--nv)"; return; }
+  if (!name || !start || !calories) { msg.textContent = "Name, start date, and calories are required."; msg.style.color = "var(--nv)"; return; }
   const rec = { id: editId || uid(), name, phone, start, end: document.getElementById("fEnd").value, calories, protein: document.getElementById("fProtein").value, days: Object.assign(blankDays("Non-Veg"), dayPick), diet: dietSummary(dayPick), status: document.getElementById("fStatus").value, payment: document.getElementById("fPay").value, restrictions: document.getElementById("fRestrict").value.trim(), allergies: document.getElementById("fAllergy").value.trim(), timing: document.getElementById("fTiming").value.trim(), address: document.getElementById("fAddress").value.trim(), notes: document.getElementById("fNotes").value.trim() };
   if (editId) { const i = state.clients.findIndex(c => c.id === editId); if (i>=0) state.clients[i] = rec; } else state.clients.push(rec);
   persist(); renderList(); closeForm();
@@ -223,37 +228,37 @@ function removeClient(id) {
 }
 function renderList() {
   const q = document.getElementById("q").value.trim().toLowerCase();
-  const rows = state.clients.filter(c => [c.name,c.phone,c.restrictions,c.allergies,dietSummary(c.days)].join(" ").toLowerCase().includes(q));
+  const rows = state.clients.filter(c => [c.name,c.phone,c.restrictions,c.allergies,c.address,dietSummary(c.days)].join(" ").toLowerCase().includes(q));
   document.getElementById("countLabel").textContent = state.clients.length + " clients · " + activeClients().length + " active";
   const host = document.getElementById("list");
   if (!rows.length) { host.innerHTML = '<div class="empty">No clients yet. Add one, or load the current roster.</div>'; return; }
-  host.innerHTML = rows.map(c => '<div class="client"><div><div class="name">'+esc(c.name)+'</div><div class="sub">'+esc(c.phone||"—")+'</div>'+(c.restrictions?'<div class="sub flag">'+esc(c.restrictions)+'</div>':'')+'</div><div><span class="pill '+(dietSummary(c.days)==="Non-veg every day"?"nv":"veg")+'">'+esc(dietSummary(c.days))+'</span></div><div><b>'+c.calories+'</b> kcal</div><div><span class="pill '+(c.status==="Active"?"on":"off")+'">'+esc(c.status)+'</span></div><div><button class="btn-ghost" data-edit="'+c.id+'" type="button">Edit</button> <button class="btn-ghost" data-del="'+c.id+'" type="button">Remove</button></div></div>').join("");
+  host.innerHTML = rows.map(c => '<div class="client"><div><div class="name">'+esc(c.name)+'</div><div class="sub">'+esc(c.phone||"No WhatsApp")+'</div>'+(c.restrictions?'<div class="sub flag">'+esc(c.restrictions)+'</div>':'')+(c.address?'<div class="sub">'+esc(c.address)+'</div>':'')+'</div><div><span class="pill '+(dietSummary(c.days)==="Non-veg every day"?"nv":"veg")+'">'+esc(dietSummary(c.days))+'</span></div><div><b>'+c.calories+'</b> kcal</div><div><span class="pill '+(c.status==="Active"?"on":"off")+'">'+esc(c.status)+'</span></div><div><button class="btn-ghost" data-edit="'+c.id+'" type="button">Edit</button> <button class="btn-ghost" data-del="'+c.id+'" type="button">Remove</button></div></div>').join("");
   host.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => openForm(state.clients.find(c => c.id === b.dataset.edit)));
   host.querySelectorAll("[data-del]").forEach(b => b.onclick = () => removeClient(b.dataset.del));
 }
 function dayLog(date) { if (!state.logs[date]) state.logs[date] = {}; return state.logs[date]; }
 function entryFor(date, c) {
   const log = dayLog(date);
-  if (!log[c.id]) log[c.id] = { breakfast:false, breakfastKcal:c.calories, lunch:false, lunchKcal:c.calories, dinner:false, dinnerKcal:c.calories, status:"Pending", notes:"" };
+  if (!log[c.id]) log[c.id] = { lunch:true, lunchKcal:c.calories, dinner:true, dinnerKcal:c.calories, status:"Packed", notes:"" };
   return log[c.id];
 }
-function mealBox(id, key, label, on, kcal) { return '<div class="meal"><div class="head"><span>'+label+'</span><input type="checkbox" data-meal="'+id+'" data-key="'+key+'"'+(on?' checked':'')+' /></div><input type="number" min="0" step="10" data-kcal="'+id+'" data-key="'+key+'" value="'+kcal+'" /></div>'; }
+function mealBox(id, key, label, on, kcal) { return '<div class="meal"><div class="head"><span>'+esc(label)+'</span><input type="checkbox" data-meal="'+id+'" data-key="'+key+'"'+(on?' checked':'')+' /></div><input type="number" min="0" step="10" data-kcal="'+id+'" data-key="'+key+'" value="'+kcal+'" /></div>'; }
 function renderLog() {
   const date = document.getElementById("logDate").value || today();
   document.getElementById("logDate").value = date;
   const people = activeClients();
   const host = document.getElementById("logList");
   if (!people.length) { host.innerHTML = '<div class="card empty">No active clients.</div>'; document.getElementById("stats").innerHTML = ""; return; }
-  let b=0,l=0,d=0;
-  people.forEach(c => { const e = entryFor(date,c); if (e.breakfast) b++; if (e.lunch) l++; if (e.dinner) d++; });
-  document.getElementById("stats").innerHTML = '<div class="stat"><b>'+people.length+'</b><span>ACTIVE</span></div><div class="stat"><b>'+b+'</b><span>BREAKFAST</span></div><div class="stat"><b>'+l+'</b><span>LUNCH</span></div><div class="stat"><b>'+d+'</b><span>DINNER</span></div>';
+  let l=0, d=0;
+  people.forEach(c => { const e = entryFor(date,c); if (e.lunch) l++; if (e.dinner) d++; });
+  document.getElementById("stats").innerHTML = '<div class="stat"><b>'+people.length+'</b><span>ACTIVE</span></div><div class="stat"><b>'+l+'</b><span>LUNCH</span></div><div class="stat"><b>'+d+'</b><span>DINNER</span></div>';
   host.innerHTML = people.map(c => {
     const e = entryFor(date,c);
     const diet = dietOn(c.days, date);
-    return '<article class="card log"><div><div class="name">'+esc(c.name)+'</div><div class="sub"><span class="pill '+(diet==="Veg"?"veg":"nv")+'">'+diet+'</span> '+c.calories+' kcal</div></div><div><div class="meals">'+mealBox(c.id,"breakfast","Breakfast",e.breakfast,e.breakfastKcal)+mealBox(c.id,"lunch","Lunch",e.lunch,e.lunchKcal)+mealBox(c.id,"dinner","Dinner",e.dinner,e.dinnerKcal)+'</div></div></article>';
+    return '<article class="card log"><div><div class="name">'+esc(c.name)+'</div><div class="sub"><span class="pill '+(diet==="Veg"?"veg":"nv")+'">'+diet+'</span> '+c.calories+' kcal</div></div><div><div class="meals">'+mealBox(c.id,"lunch","Lunch · "+diet,e.lunch,e.lunchKcal)+mealBox(c.id,"dinner","Dinner · "+diet,e.dinner,e.dinnerKcal)+'</div></div></article>';
   }).join("");
   persist();
-  host.querySelectorAll("[data-meal]").forEach(el => el.onchange = ev => { entryFor(date,{id:ev.target.dataset.meal})[ev.target.dataset.key] = ev.target.checked; persist(); });
+  host.querySelectorAll("[data-meal]").forEach(el => el.onchange = ev => { entryFor(date,{id:ev.target.dataset.meal})[ev.target.dataset.key] = ev.target.checked; persist(); document.getElementById("logMsg").textContent = "Saved for this date."; });
   host.querySelectorAll("[data-kcal]").forEach(el => el.oninput = ev => { entryFor(date,{id:ev.target.dataset.kcal})[ev.target.dataset.key+"Kcal"] = Number(ev.target.value||0); persist(); });
 }
 function show(which) {
@@ -263,12 +268,44 @@ function show(which) {
   document.getElementById("tabLog").classList.toggle("on", which==="log");
   if (which==="log") renderLog();
 }
+function downloadBackup() {
+  const payload = { exported: new Date().toISOString(), clients: state.clients, logs: state.logs };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "BFN_Clients_backup_" + today() + ".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  document.getElementById("backupNote").textContent = "Backup downloaded " + today() + ". Keep that file. Restore puts it back on a new phone.";
+}
+function restoreBackup(ev) {
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data || !Array.isArray(data.clients)) throw new Error("bad");
+      if (!confirm("Replace the clients and daily log in this browser with this backup?")) return;
+      state.clients = data.clients;
+      state.logs = data.logs || {};
+      persist();
+      renderList();
+      document.getElementById("backupNote").textContent = "Restored " + state.clients.length + " clients from " + file.name + ".";
+    } catch (e) { alert("That file is not a Belly Free Nation backup."); }
+    ev.target.value = "";
+  };
+  reader.readAsText(file);
+}
 document.getElementById("tabClients").onclick = () => show("clients");
 document.getElementById("tabLog").onclick = () => show("log");
 document.getElementById("addBtn").onclick = () => openForm(null);
 document.getElementById("cancelBtn").onclick = closeForm;
 document.getElementById("saveBtn").onclick = saveClient;
 document.getElementById("seedBtn").onclick = seed;
+document.getElementById("backupBtn").onclick = downloadBackup;
+document.getElementById("restoreBtn").onclick = () => document.getElementById("restoreFile").click();
+document.getElementById("restoreFile").onchange = restoreBackup;
 document.getElementById("setNv").onclick = () => setDays(blankDays("Non-Veg"));
 document.getElementById("setVeg").onclick = () => setDays(blankDays("Veg"));
 document.getElementById("setMon").onclick = () => setDays({Mon:"Veg"});
@@ -278,7 +315,7 @@ document.getElementById("logDate").value = today();
 document.getElementById("logDate").onchange = renderLog;
 document.getElementById("prevDay").onclick = () => { document.getElementById("logDate").value = shift(document.getElementById("logDate").value,-1); renderLog(); };
 document.getElementById("nextDay").onclick = () => { document.getElementById("logDate").value = shift(document.getElementById("logDate").value,1); renderLog(); };
-document.getElementById("copyPrev").onclick = () => { const date = document.getElementById("logDate").value; const prev = shift(date,-1); if (!state.logs[prev]) return; state.logs[date] = JSON.parse(JSON.stringify(state.logs[prev])); persist(); renderLog(); };
+document.getElementById("copyPrev").onclick = () => { const date = document.getElementById("logDate").value; const prev = shift(date,-1); if (!state.logs[prev]) { document.getElementById("logMsg").textContent = "No log on " + prev + "."; return; } state.logs[date] = JSON.parse(JSON.stringify(state.logs[prev])); persist(); renderLog(); };
 renderList();
 </script>
 </body>
