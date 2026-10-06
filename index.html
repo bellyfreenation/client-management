@@ -31,7 +31,6 @@
   .search { flex:1; min-width:180px; }
   .client { display:grid; grid-template-columns:1.4fr .8fr .6fr .7fr auto; gap:8px; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); }
   .name { font-weight:800; color:var(--navy); }
-  .sub { color:var(--muted); font-size:12px; margin-top:2px; }
   .pill { display:inline-block; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:800; }
   .pill.veg, .pill.on { background:#E7F3EA; color:var(--green); }
   .pill.nv { background:#FBEAEA; color:var(--nv); }
@@ -40,7 +39,6 @@
   .savebar { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:8px; }
   .flash { color:var(--green); font-size:13px; font-weight:700; }
   .kcal-note { font-size:12px; color:var(--muted); margin:6px 0 10px; }
-  .flag { color:var(--nv); font-size:12px; font-weight:700; }
   .days { display:flex; gap:6px; flex-wrap:wrap; }
   .day { border:1px solid var(--line); background:#fff; border-radius:8px; min-width:64px; padding:6px 8px; text-align:center; cursor:pointer; font-family:inherit; }
   .day b { display:block; font-size:11px; color:var(--navy); }
@@ -49,19 +47,16 @@
   .day span { font-size:11px; font-weight:800; }
   .deliver-grid { display:grid; grid-template-columns:52px 1fr 1fr; gap:6px; align-items:center; margin-top:6px; }
   .deliver-grid input { padding:8px; }
-  .stats { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
-  .stat { background:#fff; border:1px solid var(--line); border-radius:10px; padding:8px 12px; min-width:92px; }
-  .stat b { display:block; font-size:18px; color:var(--navy); }
-  .stat span { font-size:11px; color:var(--muted); font-weight:700; }
-  .log { display:grid; grid-template-columns:240px 1fr; gap:12px; }
-  .log .name { font-size:20px; }
-  .log-meta { margin-top:6px; font-size:14px; font-weight:650; line-height:1.4; color:var(--navy); }
-  .log-meta div { display:block; }
-  .meals { display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; }
-  .meal { border:1px solid var(--line); border-radius:10px; padding:8px; background:#fff; }
-  .meal.head { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:12px; font-weight:800; color:var(--navy); }
+  .logtable { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--line); }
+  .logtable th { background:var(--navy); color:#fff; font-size:12px; text-align:left; padding:8px; }
+  .logtable td { border-top:1px solid var(--line); padding:6px 8px; font-size:14px; vertical-align:middle; }
+  .logtable input[type="number"], .logtable input[type="text"] { width:64px; padding:4px 6px; font-size:13px; }
+  .chip { border:0; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:800; cursor:pointer; }
+  .chip.veg { background:#E7F3EA; color:var(--green); }
+  .chip.nv { background:#FBEAEA; color:var(--nv); }
+  .outbar { margin-top:10px; background:#FBEAEA; color:var(--nv); border-radius:10px; padding:10px 12px; font-size:14px; font-weight:750; }
   .empty { padding:28px 8px; text-align:center; color:var(--muted); }
-  @media (max-width:800px) { .grid, .log, .client, .meals { grid-template-columns:1fr; } }
+  @media (max-width:800px) { .grid, .client { grid-template-columns:1fr; } .logtable { display:block; overflow-x:auto; } }
 </style>
 </head>
 <body>
@@ -149,10 +144,9 @@
       <button class="btn-ghost" id="prevDay" type="button">Prev</button>
       <input id="logDate" type="date" style="max-width:180px;" />
       <button class="btn-ghost" id="nextDay" type="button">Next</button>
+      <button class="btn" id="downloadLog" type="button">Download daily log</button>
       <span id="logMsg" class="flash"></span>
     </div>
-    <p class="kcal-note">The log follows the client card. Change a tick only when that date is different.</p>
-    <div class="stats" id="stats"></div>
     <div id="logList"></div>
   </section>
 </main>
@@ -216,18 +210,24 @@ function wantsMeal(meals, iso, meal) {
   if (mode === "Dinner") return meal === "dinner";
   return true;
 }
-function deliverLines(c, iso) {
-  const hit = Object.assign(blankDeliver(), c.deliver || {})[dayKey(iso)] || { lunch:"", dinner:"" };
-  const lines = [];
-  if (wantsMeal(c.meals, iso, "lunch")) lines.push("Lunch " + (hit.lunch || c.lunchWindow || "11:00–12:00"));
-  if (wantsMeal(c.meals, iso, "dinner")) lines.push("Dinner " + (hit.dinner || c.dinnerWindow || "6:00–7:00"));
-  return lines;
+function mealDiet(c, e, date, meal) {
+  if (e[meal + "DietManual"] && e[meal + "Diet"]) return e[meal + "Diet"];
+  return dietOn(c.days, date);
+}
+function cardTime(c, date, meal) {
+  const hit = Object.assign(blankDeliver(), c.deliver || {})[dayKey(date)] || { lunch:"", dinner:"" };
+  if (meal === "lunch") return hit.lunch || c.lunchWindow || "11:00–12:00";
+  return hit.dinner || c.dinnerWindow || "6:00–7:00";
+}
+function shownTime(c, e, date, meal) {
+  if (e[meal + "TimeManual"] && e[meal + "Time"]) return e[meal + "Time"];
+  return cardTime(c, date, meal);
 }
 function dayLog(date) { if (!state.logs[date]) state.logs[date] = {}; return state.logs[date]; }
 function entryFor(date, c) {
   const full = state.clients.find(x => x.id === c.id) || c;
   const log = dayLog(date);
-  if (!log[full.id]) log[full.id] = { lunch:false, lunchKcal:full.calories, dinner:false, dinnerKcal:full.calories, status:"Packed", notes:"", manual:false };
+  if (!log[full.id]) log[full.id] = { lunch:false, lunchKcal:full.calories, dinner:false, dinnerKcal:full.calories, manual:false };
   const e = log[full.id];
   if (!e.manual) {
     e.lunch = wantsMeal(full.meals, date, "lunch");
@@ -237,25 +237,40 @@ function entryFor(date, c) {
   }
   return e;
 }
-function mealBox(id, key, label, on, kcal) { return '<div class="meal"><div class="head"><span>'+esc(label)+'</span><input type="checkbox" data-meal="'+id+'" data-key="'+key+'"'+(on?' checked':'')+' /></div><input type="number" min="0" step="10" data-kcal="'+id+'" data-key="'+key+'" value="'+kcal+'" /></div>'; }
 function renderLog() {
   const date = document.getElementById("logDate").value || today();
   document.getElementById("logDate").value = date;
   const people = activeClients();
   const host = document.getElementById("logList");
-  if (!people.length) { host.innerHTML = '<div class="card empty">No active clients.</div>'; document.getElementById("stats").innerHTML = ""; return; }
-  let l=0, d=0;
-  people.forEach(c => { const e = entryFor(date,c); if (e.lunch) l++; if (e.dinner) d++; });
-  document.getElementById("stats").innerHTML = '<div class="stat"><b>'+people.length+'</b><span>ACTIVE</span></div><div class="stat"><b>'+l+'</b><span>LUNCH</span></div><div class="stat"><b>'+d+'</b><span>DINNER</span></div>';
-  host.innerHTML = people.map(c => {
-    const e = entryFor(date,c);
-    const diet = dietOn(c.days, date);
-    const lines = '<div>'+diet+'</div>' + deliverLines(c, date).map(line => '<div>'+esc(line)+'</div>').join("");
-    return '<article class="card log"><div><div class="name">'+esc(c.name)+'</div><div class="log-meta">'+lines+'</div></div><div><div class="meals">'+mealBox(c.id,"lunch","Lunch",e.lunch,e.lunchKcal)+mealBox(c.id,"dinner","Dinner",e.dinner,e.dinnerKcal)+'</div></div></article>';
+  if (!people.length) { host.innerHTML = '<div class="card empty">No active clients.</div>'; return; }
+  const rows = people.map(c => {
+    const e = entryFor(date, c);
+    const ld = mealDiet(c, e, date, "lunch");
+    const dd = mealDiet(c, e, date, "dinner");
+    return '<tr><td class="name">'+esc(c.name)+'</td><td><input type="checkbox" data-meal="'+c.id+'" data-key="lunch"'+(e.lunch?' checked':'')+' /></td><td><button type="button" class="chip '+(ld==="Veg"?"veg":"nv")+'" data-mdiet="'+c.id+'" data-which="lunch">'+ld+'</button></td><td><input type="number" min="0" step="10" data-kcal="'+c.id+'" data-key="lunch" value="'+e.lunchKcal+'" /></td><td><input type="text" data-time="'+c.id+'" data-which="lunch" value="'+esc(shownTime(c, e, date, "lunch"))+'" /></td><td><input type="checkbox" data-meal="'+c.id+'" data-key="dinner"'+(e.dinner?' checked':'')+' /></td><td><button type="button" class="chip '+(dd==="Veg"?"veg":"nv")+'" data-mdiet="'+c.id+'" data-which="dinner">'+dd+'</button></td><td><input type="number" min="0" step="10" data-kcal="'+c.id+'" data-key="dinner" value="'+e.dinnerKcal+'" /></td><td><input type="text" data-time="'+c.id+'" data-which="dinner" value="'+esc(shownTime(c, e, date, "dinner"))+'" /></td></tr>';
   }).join("");
+  const outL = people.filter(c => !entryFor(date, c).lunch).map(c => c.name);
+  const outD = people.filter(c => !entryFor(date, c).dinner).map(c => c.name);
+  host.innerHTML = '<table class="logtable"><thead><tr><th>Name</th><th>Lunch</th><th>Veg</th><th>kcal</th><th>time</th><th>Dinner</th><th>Veg</th><th>kcal</th><th>time</th></tr></thead><tbody>'+rows+'</tbody></table><div class="outbar">OUT LUNCH: '+(outL.length?esc(outL.join(", ")):"none")+'<br>OUT DINNER: '+(outD.length?esc(outD.join(", ")):"none")+'</div>';
   persist();
-  host.querySelectorAll("[data-meal]").forEach(el => el.onchange = ev => { const e = entryFor(date,{id:ev.target.dataset.meal}); e[ev.target.dataset.key] = ev.target.checked; e.manual = true; persist(); document.getElementById("logMsg").textContent = "Saved for this date."; });
+  host.querySelectorAll("[data-meal]").forEach(el => el.onchange = ev => { const e = entryFor(date,{id:ev.target.dataset.meal}); e[ev.target.dataset.key] = ev.target.checked; e.manual = true; persist(); renderLog(); });
+  host.querySelectorAll("[data-mdiet]").forEach(el => el.onclick = ev => { const id = ev.target.dataset.mdiet, which = ev.target.dataset.which; const client = state.clients.find(x => x.id === id) || {}; const e = entryFor(date, { id:id }); e[which+"Diet"] = mealDiet(client, e, date, which) === "Veg" ? "Non-Veg" : "Veg"; e[which+"DietManual"] = true; persist(); renderLog(); });
   host.querySelectorAll("[data-kcal]").forEach(el => el.oninput = ev => { const e = entryFor(date,{id:ev.target.dataset.kcal}); e[ev.target.dataset.key+"Kcal"] = Number(ev.target.value||0); e.manual = true; persist(); });
+  host.querySelectorAll("[data-time]").forEach(el => el.onchange = ev => { const e = entryFor(date,{id:ev.target.dataset.time}); e[ev.target.dataset.which+"Time"] = ev.target.value.trim(); e[ev.target.dataset.which+"TimeManual"] = true; persist(); document.getElementById("logMsg").textContent = "Time saved for this date only."; });
+}
+function downloadLog() {
+  const date = document.getElementById("logDate").value || today();
+  const people = activeClients();
+  const outL = people.filter(c => !entryFor(date, c).lunch).map(c => c.name);
+  const outD = people.filter(c => !entryFor(date, c).dinner).map(c => c.name);
+  const rows = [["OUT LUNCH", outL.length ? outL.join(", ") : "none"], ["OUT DINNER", outD.length ? outD.join(", ") : "none"], [], ["Name","Lunch","Lunch kcal","Lunch time","Dinner","Dinner kcal","Dinner time"]];
+  people.forEach(c => { const e = entryFor(date, c); rows.push([c.name, e.lunch ? mealDiet(c, e, date, "lunch") : "Off", e.lunch ? e.lunchKcal : "", e.lunch ? shownTime(c, e, date, "lunch") : "", e.dinner ? mealDiet(c, e, date, "dinner") : "Off", e.dinner ? e.dinnerKcal : "", e.dinner ? shownTime(c, e, date, "dinner") : ""]); });
+  const csv = rows.map(r => r.map(v => '"'+String(v==null?"":v).replace(/"/g,'""')+'"').join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type:"text/csv" }));
+  a.download = "BFN_Daily_Log_" + date + ".csv";
+  a.click();
+  document.getElementById("logMsg").textContent = "Daily log downloaded for " + date + ".";
 }
 function show(which) {
   document.getElementById("clientsView").classList.toggle("hide", which!=="clients");
@@ -358,6 +373,7 @@ document.getElementById("logDate").value = today();
 document.getElementById("logDate").onchange = renderLog;
 document.getElementById("prevDay").onclick = () => { document.getElementById("logDate").value = shift(document.getElementById("logDate").value,-1); renderLog(); };
 document.getElementById("nextDay").onclick = () => { document.getElementById("logDate").value = shift(document.getElementById("logDate").value,1); renderLog(); };
+document.getElementById("downloadLog").onclick = downloadLog;
 renderList();
 </script>
 </body>
