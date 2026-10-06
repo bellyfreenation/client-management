@@ -54,7 +54,8 @@
   .stat b { display:block; font-size:18px; color:var(--navy); }
   .stat span { font-size:11px; color:var(--muted); font-weight:700; }
   .log { display:grid; grid-template-columns:240px 1fr; gap:12px; }
-  .log-meta { margin-top:8px; font-size:18px; font-weight:750; line-height:1.45; color:var(--navy); }
+  .log .name { font-size:20px; }
+  .log-meta { margin-top:6px; font-size:14px; font-weight:650; line-height:1.4; color:var(--navy); }
   .log-meta div { display:block; }
   .meals { display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; }
   .meal { border:1px solid var(--line); border-radius:10px; padding:8px; background:#fff; }
@@ -79,7 +80,6 @@
     <div class="row">
       <button class="btn" id="addBtn" type="button">+ Add Client</button>
       <input class="search" id="q" placeholder="Search name, WhatsApp, restriction" />
-      <button class="btn-ghost" id="seedBtn" type="button">Load current roster</button>
       <button class="btn-ghost" id="backupBtn" type="button">Download backup</button>
       <button class="btn-ghost" id="restoreBtn" type="button">Restore backup</button>
       <input id="restoreFile" type="file" accept="application/json,.json" class="hide" />
@@ -149,7 +149,6 @@
       <button class="btn-ghost" id="prevDay" type="button">Prev</button>
       <input id="logDate" type="date" style="max-width:180px;" />
       <button class="btn-ghost" id="nextDay" type="button">Next</button>
-      <button class="btn-ghost" id="copyPrev" type="button">Copy previous day</button>
       <span id="logMsg" class="flash"></span>
     </div>
     <p class="kcal-note">The log follows the client card. Change a tick only when that date is different.</p>
@@ -309,7 +308,7 @@ function renderList() {
   const rows = state.clients.filter(c => [c.name,c.phone,c.restrictions,c.allergies].join(" ").toLowerCase().includes(q));
   document.getElementById("countLabel").textContent = state.clients.length + " clients · " + activeClients().length + " active";
   const host = document.getElementById("list");
-  if (!rows.length) { host.innerHTML = '<div class="empty">No clients yet. Add one, or load the current roster.</div>'; return; }
+  if (!rows.length) { host.innerHTML = '<div class="empty">No clients yet.</div>'; return; }
   host.innerHTML = rows.map(c => '<div class="client"><div><div class="name">'+esc(c.name)+'</div></div><div><span class="pill '+(dietSummary(c.days)==="Non-veg every day"?"nv":"veg")+'">'+esc(dietSummary(c.days))+'</span></div><div><b>'+c.calories+'</b> kcal</div><div><span class="pill '+(c.status==="Active"?"on":"off")+'">'+esc(c.status)+'</span></div><div><button class="btn-ghost" data-edit="'+c.id+'" type="button">Edit</button> <button class="btn-ghost" data-del="'+c.id+'" type="button">Remove</button></div></div>').join("");
   host.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => openForm(state.clients.find(c => c.id === b.dataset.edit)));
   host.querySelectorAll("[data-del]").forEach(b => b.onclick = () => removeClient(b.dataset.del));
